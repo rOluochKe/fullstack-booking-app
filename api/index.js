@@ -6,15 +6,21 @@ const jwt = require('jsonwebtoken');
 
 const User = require('./models/User.js');
 const Place = require('./models/Place.js');
+const Booking = require('./models/Booking.js');
 
 const cookieParser = require('cookie-parser');
 const imageDownloader = require('image-downloader');
+const {S3Client, PutObjectCommand} = require('@aws-sdk/client-s3');
+const multer = require('multer');
+const fs = require('fs');
+const mime = require('mime-types');
 
 require('dotenv').config();
 const app = express();
 
 const bcryptSalt = bcrypt.genSaltSync(10);
 const jwtSecret = 'fasefraw4r5r3wq45wdfgw34twdfg';
+const bucket = 'dawid-booking-app';
 
 app.use(express.json());
 app.use(cookieParser());
@@ -23,6 +29,36 @@ app.use(cors({
   credentials: true,
   origin: 'http://127.0.0.1:5173',
 }));
+
+async function uploadToS3(path, originalFilename, mimetype) {
+  const client = new S3Client({
+    region: 'us-east-1',
+    credentials: {
+      accessKeyId: process.env.S3_ACCESS_KEY,
+      secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+    },
+  });
+  const parts = originalFilename.split('.');
+  const ext = parts[parts.length - 1];
+  const newFilename = Date.now() + '.' + ext;
+  await client.send(new PutObjectCommand({
+    Bucket: bucket,
+    Body: fs.readFileSync(path),
+    Key: newFilename,
+    ContentType: mimetype,
+    ACL: 'public-read',
+  }));
+  return `https://${bucket}.s3.amazonaws.com/${newFilename}`;
+}
+
+function getUserDataFromReq(req) {
+  return new Promise((resolve, reject) => {
+    jwt.verify(req.cookies.token, jwtSecret, {}, async (err, userData) => {
+      if (err) throw err;
+      resolve(userData);
+    });
+  });
+}
 
 
 /* MONGOOSE SETUP */
@@ -108,6 +144,17 @@ app.post('/api/upload-by-link', async (req,res) => {
   res.json(url);
 });
 
+const photosMiddleware = multer({dest:'/tmp'});
+app.post('/api/upload', photosMiddleware.array('photos', 100), async (req,res) => {
+  const uploadedFiles = [];
+  for (let i = 0; i < req.files.length; i++) {
+    const {path,originalname,mimetype} = req.files[i];
+    const url = await uploadToS3(path, originalname, mimetype);
+    uploadedFiles.push(url);
+  }
+  res.json(uploadedFiles);
+});
+
 app.post('/api/places', (req,res) => {
   const {token} = req.cookies;
   const {
@@ -130,6 +177,7 @@ app.get('/api/user-places', (req,res) => {
   const {token} = req.cookies;
 
   jwt.verify(token, jwtSecret, {}, async (err, userData) => {
+    console.log(userData, 'user data =====')
     const {id} = userData;
     res.json( await Place.find({owner:id}) );
   });
