@@ -8,7 +8,6 @@ import AccountNav from "../AccountNav";
 export default function ProfilePage() {
   const [redirect,setRedirect] = useState(null);
   const {ready,user,setUser} = useContext(UserContext);
-
   let {subpage} = useParams();
   if (subpage === undefined) {
     subpage = 'profile';
@@ -41,7 +40,7 @@ export default function ProfilePage() {
         </div>
       )}
       {subpage === 'places' && (
-        <PlacesPage  />
+        <PlacesPage />
       )}
     </div>
   );

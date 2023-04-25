@@ -1,10 +1,9 @@
+import PhotosUploader from "../PhotosUploader.jsx";
+import Perks from "../Perks.jsx";
 import {useEffect, useState} from "react";
 import axios from "axios";
 import AccountNav from "../AccountNav";
 import {Navigate, useParams} from "react-router-dom";
-
-import PhotosUploader from "../PhotosUploader.jsx";
-import Perks from "../Perks.jsx";
 
 export default function PlacesFormPage() {
   const {id} = useParams();
@@ -19,7 +18,6 @@ export default function PlacesFormPage() {
   const [maxGuests,setMaxGuests] = useState(1);
   const [price,setPrice] = useState(100);
   const [redirect,setRedirect] = useState(false);
-
   useEffect(() => {
     if (!id) {
       return;
@@ -38,19 +36,16 @@ export default function PlacesFormPage() {
        setPrice(data.price);
     });
   }, [id]);
-
   function inputHeader(text) {
     return (
       <h2 className="text-2xl mt-4">{text}</h2>
     );
   }
-
   function inputDescription(text) {
     return (
       <p className="text-gray-500 text-sm">{text}</p>
     );
   }
-
   function preInput(header,description) {
     return (
       <>
@@ -67,7 +62,6 @@ export default function PlacesFormPage() {
       description, perks, extraInfo,
       checkIn, checkOut, maxGuests, price,
     };
-
     if (id) {
       // update
       await axios.put('/places', {
